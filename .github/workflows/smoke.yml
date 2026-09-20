@@ -1,0 +1,18 @@
+name: Runner Smoke Test
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/smoke.yml"
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - name: Verify runner
+        run: |
+          sw_vers
+          uname -m
+          xcodebuild -version
+          echo "Public macOS runner is working."
