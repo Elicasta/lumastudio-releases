@@ -1,6 +1,7 @@
-LumaRig Studio test build trigger
-Source-Ref: build/v0.4-presenter-planning-center
-Requested source version: 0.4.0 · integrations + presentation automation
+LumaRig Studio final 0.4 validation trigger
+Source-Ref: 7b641b7216c188d488e544e571afddcf05b2bc09
+Requested source version: 0.4.0
+Integration checkpoint source: 3f4ea3e6ba7f393c46e1a31e990ff896d575fd10
 Rollback release: beta-0.3.0-build-7
 Rollback source commit: 0249a75a000c48ee451b07c1bfb52cceca36c127
 Trigger revision: 8
