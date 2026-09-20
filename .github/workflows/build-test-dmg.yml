@@ -19,11 +19,36 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
+      - name: Checkout release controller
+        uses: actions/checkout@v4
+        with:
+          path: release-controller
+
+      - name: Resolve private source ref
+        id: source
+        shell: bash
+        env:
+          DISPATCH_REF: ${{ inputs.source_ref }}
+        run: |
+          if [[ -n "$DISPATCH_REF" ]]; then
+            SOURCE_REF="$DISPATCH_REF"
+          else
+            SOURCE_REF="$(sed -n 's/^Source-Ref:[[:space:]]*//p' release-controller/.build-trigger | head -n 1)"
+          fi
+
+          if [[ -z "$SOURCE_REF" ]]; then
+            echo "Could not resolve Source-Ref from workflow input or .build-trigger"
+            exit 1
+          fi
+
+          echo "ref=$SOURCE_REF" >> "$GITHUB_OUTPUT"
+          echo "Building Elicasta/lumastudio@$SOURCE_REF"
+
       - name: Checkout private source
         uses: actions/checkout@v4
         with:
           repository: Elicasta/lumastudio
-          ref: ${{ inputs.source_ref || 'build/v0.3-functional-core' }}
+          ref: ${{ steps.source.outputs.ref }}
           token: ${{ secrets.LUMASTUDIO_SOURCE_TOKEN }}
           path: source
 
@@ -31,6 +56,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Resolve app version
+        id: version
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./source/package.json').version")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building version $VERSION"
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -67,26 +100,35 @@ jobs:
       - name: Stage artifact
         id: artifact
         shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           DMG="$(find source/src-tauri/target/release/bundle/dmg -maxdepth 1 -name '*.dmg' -print -quit)"
           if [[ -z "$DMG" ]]; then
             echo "No DMG found"
             exit 1
           fi
-          cp "$DMG" "LumaRig-Studio-Beta-0.3.0.dmg"
-          echo "dmg=LumaRig-Studio-Beta-0.3.0.dmg" >> "$GITHUB_OUTPUT"
+          OUT="LumaRig-Studio-Beta-${VERSION}.dmg"
+          cp "$DMG" "$OUT"
+          echo "dmg=$OUT" >> "$GITHUB_OUTPUT"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LumaRig-Studio-Beta-0.3.0-DMG
+          name: LumaRig-Studio-Beta-${{ steps.version.outputs.version }}-DMG
           path: ${{ steps.artifact.outputs.dmg }}
           if-no-files-found: error
 
       - name: Publish test release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SOURCE_REF: ${{ steps.source.outputs.ref }}
         shell: bash
         run: |
-          TAG="beta-0.3.0-build-${{ github.run_number }}"
-          gh release create "$TAG"             "${{ steps.artifact.outputs.dmg }}"             --repo "${{ github.repository }}"             --title "LumaRig Studio Beta 0.3.0 Build/ ${{ github.run_number }}"             --notes "Unsigned internal test DMG built from Elicasta/lumastudio at ${{ inputs.source_ref }}."
+          TAG="beta-${VERSION}-build-${{ github.run_number }}"
+          gh release create "$TAG" \
+            "${{ steps.artifact.outputs.dmg }}" \
+            --repo "${{ github.repository }}" \
+            --title "LumaRig Studio Beta ${VERSION} Build ${{ github.run_number }}" \
+            --notes "Unsigned internal test DMG built from Elicasta/lumastudio@${SOURCE_REF}."
