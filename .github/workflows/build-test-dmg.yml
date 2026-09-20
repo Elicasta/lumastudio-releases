@@ -1,0 +1,88 @@
+name: Build LumaRig Studio Test DMG
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: "Private lumastudio branch, tag, or SHA to build"
+        required: true
+        default: "build/v0.2-audio-engine"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout private source
+        uses: actions/checkout@v4
+        with:
+          repository: Elicasta/lumastudio
+          ref: ${{ inputs.source_ref }}
+          token: ${{ secrets.LUMASTUDIO_SOURCE_TOKEN }}
+          path: source
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "source/src-tauri -> target"
+
+      - name: Install dependencies
+        working-directory: source
+        run: npm install
+
+      - name: Verify versions
+        working-directory: source
+        run: npm run check:versions
+
+      - name: Run frontend tests
+        working-directory: source
+        run: npm test
+
+      - name: Build frontend
+        working-directory: source
+        run: npm run build
+
+      - name: Run native tests
+        working-directory: source
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Build DMG
+        working-directory: source
+        run: npm run dmg
+
+      - name: Stage artifact
+        id: artifact
+        shell: bash
+        run: |
+          DMG="$(find source/src-tauri/target/release/bundle/dmg -maxdepth 1 -name '*.dmg' -print -quit)"
+          if [[ -z "$DMG" ]]; then
+            echo "No DMG found"
+            exit 1
+          fi
+          cp "$DMG" "LumaRig-Studio-Beta-0.2.0.dmg"
+          echo "dmg=LumaRig-Studio-Beta-0.2.0.dmg" >> "$GITHUB_OUTPUT"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LumaRig-Studio-Beta-0.2.0-DMG
+          path: ${{ steps.artifact.outputs.dmg }}
+          if-no-files-found: error
+
+      - name: Publish test release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          TAG="beta-0.2.0-build-${{ github.run_number }}"
+          gh release create "$TAG"             "${{ steps.artifact.outputs.dmg }}"             --repo "${{ github.repository }}"             --title "LumaRig Studio Beta 0.2.0 Build ${{ github.run_number }}"             --notes "Unsigned internal test DMG built from Elicasta/lumastudio at ${{ inputs.source_ref }}."
