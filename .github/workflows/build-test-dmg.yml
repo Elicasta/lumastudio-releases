@@ -6,7 +6,7 @@ on:
       source_ref:
         description: "Private lumastudio branch, tag, or SHA to build"
         required: true
-        default: "build/v0.2-audio-engine"
+        default: "build/v0.3-functional-core"
 
 permissions:
   contents: write
@@ -69,13 +69,13 @@ jobs:
             echo "No DMG found"
             exit 1
           fi
-          cp "$DMG" "LumaRig-Studio-Beta-0.2.0.dmg"
-          echo "dmg=LumaRig-Studio-Beta-0.2.0.dmg" >> "$GITHUB_OUTPUT"
+          cp "$DMG" "LumaRig-Studio-Beta-0.3.0.dmg"
+          echo "dmg=LumaRig-Studio-Beta-0.3.0.dmg" >> "$GITHUB_OUTPUT"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LumaRig-Studio-Beta-0.2.0-DMG
+          name: LumaRig-Studio-Beta-0.3.0-DMG
           path: ${{ steps.artifact.outputs.dmg }}
           if-no-files-found: error
 
@@ -84,5 +84,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="beta-0.2.0-build-${{ github.run_number }}"
-          gh release create "$TAG"             "${{ steps.artifact.outputs.dmg }}"             --repo "${{ github.repository }}"             --title "LumaRig Studio Beta 0.2.0 Build ${{ github.run_number }}"             --notes "Unsigned internal test DMG built from Elicasta/lumastudio at ${{ inputs.source_ref }}."
+          TAG="beta-0.3.0-build-${{ github.run_number }}"
+          gh release create "$TAG"             "${{ steps.artifact.outputs.dmg }}"             --repo "${{ github.repository }}"             --title "LumaRig Studio Beta 0.3.0 Build/ ${{ github.run_number }}"             --notes "Unsigned internal test DMG built from Elicasta/lumastudio at ${{ inputs.source_ref }}."
