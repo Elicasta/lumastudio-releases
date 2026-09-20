@@ -1,4 +1,6 @@
-LumaRig Studio v0.3 macOS build trigger
-Source: Elicasta/lumastudio@build/v0.3-functional-core
-Requested source commit: 0249a75a000c48ee451b07c1bfb52cceca36c127
-Trigger revision: 5
+LumaRig Studio test build trigger
+Source-Ref: build/v0.4-presenter-planning-center
+Requested source version: 0.4.0
+Rollback release: beta-0.3.0-build-7
+Rollback source commit: 0249a75a000c48ee451b07c1bfb52cceca36c127
+Trigger revision: 6
