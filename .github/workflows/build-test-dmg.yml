@@ -8,6 +8,10 @@ on:
         required: true
         default: "build/v0.3-functional-core"
 
+  push:
+    paths:
+      - ".build-trigger"
+
 permissions:
   contents: write
 
@@ -19,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Elicasta/lumastudio
-          ref: ${{ inputs.source_ref }}
+          ref: ${{ inputs.source_ref || 'build/v0.3-functional-core' }}
           token: ${{ secrets.LUMASTUDIO_SOURCE_TOKEN }}
           path: source
 
